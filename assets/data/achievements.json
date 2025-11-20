@@ -1,0 +1,153 @@
+{
+  "achievements": [
+    {
+      "id": 1,
+      "name": "初次尝试",
+      "description": "完成第一个任务",
+      "icon": "🌟",
+      "category": "任务",
+      "condition": "complete_first_task",
+      "exp": 20,
+      "rarity": "普通",
+      "unlocked": false
+    },
+    {
+      "id": 2,
+      "name": "勤奋学习者",
+      "description": "完成5个任务",
+      "icon": "📚",
+      "category": "任务",
+      "condition": "complete_5_tasks",
+      "exp": 50,
+      "rarity": "稀有",
+      "unlocked": false
+    },
+    {
+      "id": 3,
+      "name": "任务达人",
+      "description": "完成10个任务",
+      "icon": "🏆",
+      "category": "任务",
+      "condition": "complete_10_tasks",
+      "exp": 100,
+      "rarity": "史诗",
+      "unlocked": false
+    },
+    {
+      "id": 4,
+      "name": "崭露头角",
+      "description": "达到等级5",
+      "icon": "⭐",
+      "category": "成长",
+      "condition": "reach_level_5",
+      "exp": 100,
+      "rarity": "稀有",
+      "unlocked": false
+    },
+    {
+      "id": 5,
+      "name": "非遗专家",
+      "description": "达到等级10",
+      "icon": "👑",
+      "category": "成长",
+      "condition": "reach_level_10",
+      "exp": 200,
+      "rarity": "史诗",
+      "unlocked": false
+    },
+    {
+      "id": 6,
+      "name": "坚持不懈",
+      "description": "连续登录7天",
+      "icon": "🔥",
+      "category": "日常",
+      "condition": "consecutive_login_7",
+      "exp": 80,
+      "rarity": "稀有",
+      "unlocked": false
+    },
+    {
+      "id": 7,
+      "name": "档案收藏家",
+      "description": "收藏5个非遗档案",
+      "icon": "💎",
+      "category": "收藏",
+      "condition": "favorite_5_knowledge",
+      "exp": 50,
+      "rarity": "普通",
+      "unlocked": false
+    },
+    {
+      "id": 8,
+      "name": "文创鉴赏家",
+      "description": "收藏5个文创产品",
+      "icon": "🎨",
+      "category": "收藏",
+      "condition": "favorite_5_products",
+      "exp": 50,
+      "rarity": "普通",
+      "unlocked": false
+    },
+    {
+      "id": 9,
+      "name": "口述历史专家",
+      "description": "完成银饰传承人访谈任务",
+      "icon": "🎤",
+      "category": "特殊",
+      "condition": "oral_history_expert",
+      "exp": 150,
+      "rarity": "史诗",
+      "unlocked": false
+    },
+    {
+      "id": 10,
+      "name": "创新设计师",
+      "description": "完成银饰胸针创新设计任务",
+      "icon": "💡",
+      "category": "特殊",
+      "condition": "innovative_designer",
+      "exp": 150,
+      "rarity": "史诗",
+      "unlocked": false
+    },
+    {
+      "id": 11,
+      "name": "IP创造者",
+      "description": "完成文创IP形象设计任务",
+      "icon": "🦄",
+      "category": "特殊",
+      "condition": "ip_creator",
+      "exp": 200,
+      "rarity": "传说",
+      "unlocked": false
+    },
+    {
+      "id": 12,
+      "name": "直播策划大师",
+      "description": "完成非遗主题直播策划任务",
+      "icon": "📺",
+      "category": "特殊",
+      "condition": "live_planner",
+      "exp": 180,
+      "rarity": "史诗",
+      "unlocked": false
+    },
+    {
+      "id": 13,
+      "name": "营销策略家",
+      "description": "完成跨界合作方案策划任务",
+      "icon": "🚀",
+      "category": "特殊",
+      "condition": "marketing_strategist",
+      "exp": 250,
+      "rarity": "传说",
+      "unlocked": false
+    }
+  ],
+  "rarityColors": {
+    "普通": "#95A5A6",
+    "稀有": "#3498DB",
+    "史诗": "#9B59B6",
+    "传说": "#F39C12"
+  }
+}
