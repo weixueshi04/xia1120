@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'config/theme.dart';
 import 'config/api_config.dart';
-import 'screens/splash_screen.dart';
+import 'screens/main_navigation_screen.dart';
 import 'utils/logger.dart';
 import 'services/proxy_manager.dart';
 
