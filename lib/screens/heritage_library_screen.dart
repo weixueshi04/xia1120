@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/theme.dart';
 import '../models/knowledge.dart';
-import '../services/local_storage_service.dart';
+import '../models/user_progress.dart';
 
 /// 非遗库 - 技艺/故事/人物档案
 /// 功能:
@@ -18,81 +22,145 @@ class HeritageLibraryScreen extends StatefulWidget {
 }
 
 class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
-  final LocalStorageService _storage = LocalStorageService();
-  List<Knowledge> _items = [];
+  KnowledgeBase? _knowledgeBase;
+  UserProgress? _userProgress;
+  List<Knowledge> _allItems = [];
+  List<Knowledge> _filteredItems = [];
   String _selectedCategory = '全部';
+  String _searchQuery = '';
+  bool _isLoading = true;
+  bool _showFavoritesOnly = false;
 
-  final List<String> _categories = [
-    '全部',
-    '技艺档案',
-    '人物故事',
-    '节庆民俗',
-    '商业模式',
-  ];
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    _loadData();
   }
 
-  Future<void> _loadItems() async {
-    // TODO: 从知识库加载数据
-    // 这里先创建示例数据
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      // 加载知识库
+      final knowledgeJson =
+          await rootBundle.loadString('assets/data/knowledge.json');
+      _knowledgeBase = KnowledgeBase.fromJsonString(knowledgeJson);
+      _allItems = _knowledgeBase!.knowledge;
+
+      // 加载用户进度
+      final prefs = await SharedPreferences.getInstance();
+      final progressJson = prefs.getString('user_progress');
+      if (progressJson != null) {
+        _userProgress = UserProgress.fromJsonString(progressJson);
+      } else {
+        _userProgress = UserProgress();
+      }
+
+      _applyFilters();
+    } catch (e) {
+      debugPrint('加载数据失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载数据失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _saveUserProgress() async {
+    if (_userProgress == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_progress', _userProgress!.toJsonString());
+  }
+
+  void _applyFilters() {
+    List<Knowledge> filtered = List.from(_allItems);
+
+    // 分类筛选
+    if (_selectedCategory != '全部') {
+      filtered =
+          filtered.where((item) => item.category == _selectedCategory).toList();
+    }
+
+    // 搜索筛选
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered.where((item) {
+        return item.question.toLowerCase().contains(query) ||
+            item.answer.toLowerCase().contains(query) ||
+            item.keywords.any((k) => k.toLowerCase().contains(query));
+      }).toList();
+    }
+
+    // 收藏筛选
+    if (_showFavoritesOnly && _userProgress != null) {
+      filtered = filtered
+          .where((item) => _userProgress!.favoriteKnowledgeIds.contains(item.id))
+          .toList();
+    }
+
     setState(() {
-      _items = _generateSampleData();
+      _filteredItems = filtered;
     });
   }
 
-  List<Knowledge> _generateSampleData() {
-    // 示例数据,后续从knowledge.json加载
-    return [
-      Knowledge(
-        id: 1,
-        question: '枫香蜡染',
-        answer: '麻江传统蓝染技艺,用枫香树脂防染,形成美丽纹样',
-        keywords: ['蜡染', '技艺', '麻江'],
-        category: '技艺档案',
-        synonymQuestions: [],
-      ),
-      Knowledge(
-        id: 2,
-        question: '苗族银饰',
-        answer: '精美的苗族传统装饰,承载历史记忆与文化传承',
-        keywords: ['银饰', '苗族', '技艺'],
-        category: '技艺档案',
-        synonymQuestions: [],
-      ),
-      Knowledge(
-        id: 3,
-        question: '夏同龢',
-        answer: '清朝光绪年间状元,贵州麻江人,致力于教育事业',
-        keywords: ['状元', '历史', '麻江'],
-        category: '人物故事',
-        synonymQuestions: [],
-      ),
-    ];
+  List<String> get _categories {
+    if (_knowledgeBase == null) return ['全部'];
+    final categories = _knowledgeBase!.getAllCategories();
+    return ['全部', ...categories];
   }
 
-  List<Knowledge> get _filteredItems {
-    if (_selectedCategory == '全部') {
-      return _items;
+  void _toggleFavorite(Knowledge item) {
+    if (_userProgress == null) return;
+
+    setState(() {
+      _userProgress!.toggleFavoriteKnowledge(item.id);
+    });
+    _saveUserProgress();
+
+    final isFavorited = _userProgress!.favoriteKnowledgeIds.contains(item.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isFavorited ? '已收藏到我的档案' : '已取消收藏'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+
+    // 如果在收藏模式下取消收藏，需要刷新列表
+    if (_showFavoritesOnly) {
+      _applyFilters();
     }
-    return _items.where((item) => item.category == _selectedCategory).toList();
+  }
+
+  bool _isFavorited(Knowledge item) {
+    return _userProgress?.favoriteKnowledgeIds.contains(item.id) ?? false;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          _buildCategoryFilter(),
-          Expanded(
-            child: _buildLibraryGrid(),
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                _buildSearchBar(),
+                _buildCategoryFilter(),
+                Expanded(child: _buildLibraryGrid()),
+              ],
+            ),
     );
   }
 
@@ -117,12 +185,66 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.search),
+          icon: Icon(
+            _showFavoritesOnly ? Icons.favorite : Icons.favorite_border,
+            color: _showFavoritesOnly ? Colors.red : Colors.white,
+          ),
           onPressed: () {
-            // TODO: 实现搜索功能
+            setState(() {
+              _showFavoritesOnly = !_showFavoritesOnly;
+            });
+            _applyFilters();
           },
+          tooltip: _showFavoritesOnly ? '显示全部' : '仅看收藏',
         ),
       ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.03 * 255).round()),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '搜索非遗档案、关键词...',
+          prefixIcon: const Icon(Icons.search, color: MiaoTheme.indigoDye),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                    _applyFilters();
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: MiaoTheme.waxWhite,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        onChanged: (value) {
+          setState(() => _searchQuery = value);
+          _applyFilters();
+        },
+      ),
     );
   }
 
@@ -153,11 +275,14 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
                   setState(() {
                     _selectedCategory = category;
                   });
+                  _applyFilters();
                 },
                 backgroundColor: Colors.white,
-                selectedColor: MiaoTheme.indigoDye.withAlpha((0.15 * 255).round()),
+                selectedColor:
+                    MiaoTheme.indigoDye.withAlpha((0.15 * 255).round()),
                 labelStyle: TextStyle(
-                  color: isSelected ? MiaoTheme.indigoDye : MiaoTheme.silverThread,
+                  color:
+                      isSelected ? MiaoTheme.indigoDye : MiaoTheme.silverThread,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -181,11 +306,14 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              '暂无档案',
+              _showFavoritesOnly
+                  ? '还没有收藏任何档案\n快去探索非遗宝库吧！'
+                  : (_searchQuery.isNotEmpty ? '没有找到相关档案' : '暂无档案'),
               style: TextStyle(
                 fontSize: 16,
                 color: MiaoTheme.silverThread.withAlpha((0.7 * 255).round()),
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -209,6 +337,8 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
   }
 
   Widget _buildLibraryCard(Knowledge item) {
+    final isFav = _isFavorited(item);
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -217,120 +347,163 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
       child: InkWell(
         onTap: () {
           _showDetailDialog(item);
+          // 记录阅读
+          if (_userProgress != null) {
+            _userProgress!.readKnowledge(item.id);
+            _saveUserProgress();
+          }
         },
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 图标和分类
-              Row(
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getCategoryIcon(item.category),
+                  // 图标和分类
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color:
+                              MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          _getCategoryIcon(item.category),
+                          color: MiaoTheme.indigoDye,
+                          size: 20,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: MiaoTheme.scholarGold
+                              .withAlpha((0.2 * 255).round()),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          item.category,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: MiaoTheme.scholarGold
+                                .withAlpha((0.9 * 255).round()),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // 标题
+                  Text(
+                    item.question,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                       color: MiaoTheme.indigoDye,
-                      size: 20,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // 内容预览
+                  Expanded(
+                    child: Text(
+                      item.answer,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            MiaoTheme.silverThread.withAlpha((0.8 * 255).round()),
+                        height: 1.4,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: MiaoTheme.scholarGold.withAlpha((0.2 * 255).round()),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      item.category,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: MiaoTheme.scholarGold.withAlpha((0.9 * 255).round()),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  // 关键词
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: item.keywords.take(3).map((keyword) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: MiaoTheme.waxWhite,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: MiaoTheme.indigoDye
+                                .withAlpha((0.2 * 255).round()),
+                          ),
+                        ),
+                        child: Text(
+                          keyword,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: MiaoTheme.indigoDye
+                                .withAlpha((0.7 * 255).round()),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              // 标题
-              Text(
-                item.question,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: MiaoTheme.indigoDye,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              // 内容预览
-              Expanded(
-                child: Text(
-                  item.answer,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: MiaoTheme.silverThread.withAlpha((0.8 * 255).round()),
-                    height: 1.4,
+            ),
+            // 收藏按钮
+            Positioned(
+              top: 8,
+              right: 8,
+              child: InkWell(
+                onTap: () => _toggleFavorite(item),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha((0.9 * 255).round()),
+                    shape: BoxShape.circle,
                   ),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
+                  child: Icon(
+                    isFav ? Icons.favorite : Icons.favorite_border,
+                    color: isFav ? Colors.red : MiaoTheme.silverThread,
+                    size: 20,
+                  ),
                 ),
               ),
-              // 关键词
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: item.keywords.take(3).map((keyword) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: MiaoTheme.waxWhite,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: MiaoTheme.indigoDye.withAlpha((0.2 * 255).round()),
-                      ),
-                    ),
-                    child: Text(
-                      keyword,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: MiaoTheme.indigoDye.withAlpha((0.7 * 255).round()),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case '技艺档案':
-        return Icons.palette;
-      case '人物故事':
-        return Icons.person;
-      case '节庆民俗':
-        return Icons.festival;
-      case '商业模式':
-        return Icons.business_center;
-      default:
-        return Icons.article;
+    if (category.contains('非遗') || category.contains('文化')) {
+      return Icons.palette;
+    } else if (category.contains('人物') || category.contains('故事')) {
+      return Icons.person;
+    } else if (category.contains('节') || category.contains('民俗')) {
+      return Icons.festival;
+    } else if (category.contains('商业') || category.contains('模式')) {
+      return Icons.business_center;
+    } else if (category.contains('历史')) {
+      return Icons.history_edu;
     }
+    return Icons.article;
   }
 
   void _showDetailDialog(Knowledge item) {
+    final isFav = _isFavorited(item);
+
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -397,14 +570,11 @@ class _HeritageLibraryScreenState extends State<HeritageLibraryScreen> {
           ),
           FilledButton.icon(
             onPressed: () {
-              // TODO: 实现收藏功能
+              _toggleFavorite(item);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已收藏到我的档案')),
-              );
             },
-            icon: const Icon(Icons.favorite, size: 16),
-            label: const Text('收藏'),
+            icon: Icon(isFav ? Icons.favorite : Icons.favorite_border, size: 16),
+            label: Text(isFav ? '取消收藏' : '收藏'),
           ),
         ],
       ),

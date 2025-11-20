@@ -1,0 +1,250 @@
+{
+  "achievements": [
+    {
+      "id": 1,
+      "name": "初识非遗",
+      "description": "完成第一个学习任务",
+      "icon": "🎓",
+      "category": "学习成就",
+      "condition": "完成任意1个学习任务",
+      "exp": 10,
+      "rarity": "普通"
+    },
+    {
+      "id": 2,
+      "name": "采撷之星",
+      "description": "完成第一次田野调查",
+      "icon": "📝",
+      "category": "数字采撷者",
+      "condition": "完成任务：采集传承人故事",
+      "exp": 20,
+      "rarity": "普通"
+    },
+    {
+      "id": 3,
+      "name": "档案大师",
+      "description": "整理了5份非遗技艺档案",
+      "icon": "📚",
+      "category": "数字采撷者",
+      "condition": "完成5次档案整理任务",
+      "exp": 50,
+      "rarity": "稀有"
+    },
+    {
+      "id": 4,
+      "name": "田野行者",
+      "description": "累计采访了10位传承人",
+      "icon": "🎤",
+      "category": "数字采撷者",
+      "condition": "完成10次采访任务",
+      "exp": 100,
+      "rarity": "史诗"
+    },
+    {
+      "id": 5,
+      "name": "数据分析师",
+      "description": "完成一次完整的数据调研",
+      "icon": "📊",
+      "category": "数字采撷者",
+      "condition": "完成任务：非遗传承现状调研",
+      "exp": 30,
+      "rarity": "普通"
+    },
+    {
+      "id": 6,
+      "name": "创意萌新",
+      "description": "使用AI生成了第一个设计方案",
+      "icon": "💡",
+      "category": "AI辅助设计师",
+      "condition": "完成任务：生成文创灵感",
+      "exp": 10,
+      "rarity": "普通"
+    },
+    {
+      "id": 7,
+      "name": "创意新星",
+      "description": "成功设计了一款文创产品",
+      "icon": "⭐",
+      "category": "AI辅助设计师",
+      "condition": "完成任务：设计苗绣帆布包",
+      "exp": 30,
+      "rarity": "普通"
+    },
+    {
+      "id": 8,
+      "name": "设计达人",
+      "description": "设计了10款文创产品",
+      "icon": "🎨",
+      "category": "AI辅助设计师",
+      "condition": "完成10次设计任务",
+      "exp": 80,
+      "rarity": "稀有"
+    },
+    {
+      "id": 9,
+      "name": "市场洞察者",
+      "description": "完成第一份市场分析报告",
+      "icon": "📈",
+      "category": "AI辅助设计师",
+      "condition": "完成任务：文创产品定价策略",
+      "exp": 40,
+      "rarity": "稀有"
+    },
+    {
+      "id": 10,
+      "name": "创新先锋",
+      "description": "提出了跨界融合创新方案",
+      "icon": "🚀",
+      "category": "AI辅助设计师",
+      "condition": "完成任务：非遗+科技创新方案",
+      "exp": 100,
+      "rarity": "传说"
+    },
+    {
+      "id": 11,
+      "name": "文案新手",
+      "description": "撰写了第一篇产品文案",
+      "icon": "✍️",
+      "category": "新媒体运营者",
+      "condition": "完成任务：撰写文创产品文案",
+      "exp": 10,
+      "rarity": "普通"
+    },
+    {
+      "id": 12,
+      "name": "研学规划师",
+      "description": "设计了一条完整的研学路线",
+      "icon": "🗺️",
+      "category": "新媒体运营者",
+      "condition": "完成任务：设计非遗体验一日游",
+      "exp": 30,
+      "rarity": "普通"
+    },
+    {
+      "id": 13,
+      "name": "直播达人",
+      "description": "策划了一场直播活动",
+      "icon": "📹",
+      "category": "新媒体运营者",
+      "condition": "完成任务：非遗技艺直播带货",
+      "exp": 50,
+      "rarity": "稀有"
+    },
+    {
+      "id": 14,
+      "name": "社区推广大使",
+      "description": "组织了一次社区体验活动",
+      "icon": "🤝",
+      "category": "新媒体运营者",
+      "condition": "完成任务：组织非遗手工体验活动",
+      "exp": 40,
+      "rarity": "稀有"
+    },
+    {
+      "id": 15,
+      "name": "全能选手",
+      "description": "三种角色的任务都完成过",
+      "icon": "🏆",
+      "category": "综合成就",
+      "condition": "完成采撷者、设计师、运营者各至少1个任务",
+      "exp": 60,
+      "rarity": "稀有"
+    },
+    {
+      "id": 16,
+      "name": "勤奋学习者",
+      "description": "累计获得500点经验值",
+      "icon": "📖",
+      "category": "成长成就",
+      "condition": "累计经验值≥500",
+      "exp": 50,
+      "rarity": "普通"
+    },
+    {
+      "id": 17,
+      "name": "经验丰富",
+      "description": "累计获得1000点经验值",
+      "icon": "💪",
+      "category": "成长成就",
+      "condition": "累计经验值≥1000",
+      "exp": 100,
+      "rarity": "稀有"
+    },
+    {
+      "id": 18,
+      "name": "大师级别",
+      "description": "累计获得3000点经验值",
+      "icon": "👑",
+      "category": "成长成就",
+      "condition": "累计经验值≥3000",
+      "exp": 200,
+      "rarity": "史诗"
+    },
+    {
+      "id": 19,
+      "name": "收藏家",
+      "description": "收藏了20份非遗档案",
+      "icon": "❤️",
+      "category": "互动成就",
+      "condition": "收藏档案数≥20",
+      "exp": 30,
+      "rarity": "普通"
+    },
+    {
+      "id": 20,
+      "name": "非遗达人",
+      "description": "阅读了50份非遗档案",
+      "icon": "📜",
+      "category": "互动成就",
+      "condition": "阅读档案数≥50",
+      "exp": 40,
+      "rarity": "稀有"
+    },
+    {
+      "id": 21,
+      "name": "购物达人",
+      "description": "在文创集收藏了10款产品",
+      "icon": "🛍️",
+      "category": "互动成就",
+      "condition": "收藏产品数≥10",
+      "exp": 20,
+      "rarity": "普通"
+    },
+    {
+      "id": 22,
+      "name": "七日之约",
+      "description": "连续7天登录应用",
+      "icon": "📅",
+      "category": "活跃成就",
+      "condition": "连续登录天数≥7",
+      "exp": 30,
+      "rarity": "普通"
+    },
+    {
+      "id": 23,
+      "name": "月度之星",
+      "description": "连续30天登录应用",
+      "icon": "🌟",
+      "category": "活跃成就",
+      "condition": "连续登录天数≥30",
+      "exp": 100,
+      "rarity": "史诗"
+    },
+    {
+      "id": 24,
+      "name": "非遗守护者",
+      "description": "解锁所有其他成就",
+      "icon": "🛡️",
+      "category": "终极成就",
+      "condition": "解锁其他23个成就",
+      "exp": 500,
+      "rarity": "传说"
+    }
+  ],
+  "rarityColors": {
+    "普通": "#95A5A6",
+    "稀有": "#3498DB",
+    "史诗": "#9B59B6",
+    "传说": "#F39C12"
+  }
+}
