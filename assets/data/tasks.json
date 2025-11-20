@@ -2,285 +2,274 @@
   "tasks": [
     {
       "id": 1,
-      "title": "非遗初探：了解麻江三宝",
-      "description": "学习了解麻江的三大非遗技艺：枫香蜡染、苗族刺绣、银饰锻造",
+      "title": "初探非遗档案",
+      "description": "学习如何使用数字档案系统，完成第一份非遗资料的整理",
       "role": "archivist",
       "difficulty": "初级",
       "exp": 50,
       "steps": [
-        "阅读非遗库中的'枫香蜡染'档案",
-        "阅读'苗族刺绣'相关资料",
-        "了解'银饰锻造'工艺流程",
-        "完成小测验（回答3个问题）"
+        "打开非遗档案整理游戏",
+        "浏览档案分类系统",
+        "选择一个档案进行整理",
+        "完成档案信息录入"
       ],
       "rewards": {
         "exp": 50,
         "coins": 10,
         "achievement": null
       },
-      "estimatedTime": "15分钟",
-      "category": "学习任务",
+      "estimatedTime": "10分钟",
+      "category": "档案管理",
       "status": "available"
     },
     {
       "id": 2,
-      "title": "田野调查：采集传承人故事",
-      "description": "采访一位非遗传承人，记录他们的故事和技艺传承历程",
+      "title": "蜡染工艺深度采集",
+      "description": "深入了解苗族蜡染工艺，记录完整的制作流程和文化内涵",
       "role": "archivist",
       "difficulty": "中级",
       "exp": 100,
       "steps": [
-        "选择一位传承人（可以是虚拟模拟）",
-        "准备采访提纲（至少5个问题）",
-        "进行采访并录音/录像（模拟）",
-        "整理采访内容，撰写故事（300字以上）",
-        "上传到非遗库，等待审核"
+        "观看蜡染工艺视频资料",
+        "整理蜡染制作步骤",
+        "记录工艺特点和文化意义",
+        "添加图片和视频素材"
       ],
       "rewards": {
         "exp": 100,
-        "coins": 30,
-        "achievement": "采撷之星"
+        "coins": 25,
+        "achievement": null
       },
-      "estimatedTime": "45分钟",
-      "category": "实践任务",
+      "estimatedTime": "25分钟",
+      "category": "档案管理",
       "status": "available"
     },
     {
       "id": 3,
-      "title": "数字档案：整理非遗技艺流程",
-      "description": "选择一项非遗技艺，详细记录其完整工艺流程，制作图文档案",
+      "title": "银饰传承人访谈",
+      "description": "采访银饰传承人，记录口述历史和技艺传承故事",
       "role": "archivist",
       "difficulty": "高级",
-      "exp": 150,
+      "exp": 200,
       "steps": [
-        "选择非遗技艺（如枫香蜡染）",
-        "查阅资料，了解完整工艺流程",
-        "绘制/拍摄流程图（至少6个步骤）",
-        "撰写详细说明（每步骤100字以上）",
-        "制作成标准档案格式并提交"
+        "准备访谈提纲",
+        "模拟访谈对话",
+        "整理访谈记录",
+        "提炼核心观点和故事",
+        "完善档案资料"
       ],
       "rewards": {
-        "exp": 150,
+        "exp": 200,
         "coins": 50,
-        "achievement": "档案大师"
+        "achievement": "oral_history_expert"
       },
-      "estimatedTime": "90分钟",
-      "category": "实践任务",
-      "status": "locked"
+      "estimatedTime": "40分钟",
+      "category": "口述历史",
+      "status": "available"
     },
     {
       "id": 4,
-      "title": "AI设计入门：生成文创灵感",
-      "description": "使用AI设计助手，基于非遗元素生成3个文创产品设计方案",
+      "title": "AI设计初体验",
+      "description": "使用AI设计助手，创作你的第一件蜡染文创产品",
       "role": "designer",
       "difficulty": "初级",
       "exp": 50,
       "steps": [
-        "打开AI设计助手",
-        "选择一个非遗元素（如蜡染纹样）",
-        "输入设计需求，生成方案1",
-        "调整Prompt，生成方案2和3",
-        "对比三个方案，选出最佳并说明理由"
+        "打开AI设计助手对话",
+        "描述你想设计的蜡染产品",
+        "选择产品类型和风格",
+        "生成初步设计方案"
       ],
       "rewards": {
         "exp": 50,
-        "coins": 10,
+        "coins": 15,
         "achievement": null
       },
-      "estimatedTime": "20分钟",
-      "category": "设计任务",
+      "estimatedTime": "15分钟",
+      "category": "AI设计",
       "status": "available"
     },
     {
       "id": 5,
-      "title": "产品共创：设计苗绣帆布包",
-      "description": "与传承人合作，设计一款融合苗绣元素的现代帆布包",
+      "title": "蜡染书签设计",
+      "description": "结合传统蜡染图案，设计一款现代感的书签产品",
       "role": "designer",
       "difficulty": "中级",
       "exp": 120,
       "steps": [
-        "研究苗绣传统纹样（选择3-5种）",
-        "使用AI生成初步设计方案",
-        "与模拟传承人对话，获取专业建议",
-        "优化设计，确定最终方案",
-        "撰写设计说明和产品故事（200字）",
-        "提交设计稿和成本预算"
+        "研究传统蜡染纹样",
+        "确定书签尺寸和形状",
+        "与AI讨论设计思路",
+        "生成多个设计方案",
+        "优化最终方案"
       ],
       "rewards": {
         "exp": 120,
-        "coins": 40,
-        "achievement": "创意新星"
+        "coins": 30,
+        "achievement": null
       },
-      "estimatedTime": "60分钟",
-      "category": "设计任务",
+      "estimatedTime": "30分钟",
+      "category": "产品设计",
       "status": "available"
     },
     {
       "id": 6,
-      "title": "市场调研：文创产品定价策略",
-      "description": "为一款文创产品制定合理的定价策略和市场推广方案",
+      "title": "银饰胸针创新设计",
+      "description": "将苗族银饰元素融入现代胸针设计，平衡传统与时尚",
       "role": "designer",
       "difficulty": "高级",
-      "exp": 150,
+      "exp": 180,
       "steps": [
-        "选择一款已设计的文创产品",
-        "调研同类产品市场价格（至少5款）",
-        "计算成本（材料、人工、包装等）",
-        "制定定价策略（成本价、建议零售价）",
-        "撰写市场分析报告（500字）",
-        "设计促销方案（至少3种）"
+        "分析苗族银饰特色元素",
+        "调研现代胸针市场趋势",
+        "构思创新设计概念",
+        "生成设计草图",
+        "完善产品文案和定位"
       ],
       "rewards": {
-        "exp": 150,
-        "coins": 60,
-        "achievement": "市场洞察者"
+        "exp": 180,
+        "coins": 45,
+        "achievement": "innovative_designer"
       },
-      "estimatedTime": "90分钟",
-      "category": "设计任务",
-      "status": "locked"
+      "estimatedTime": "45分钟",
+      "category": "创新设计",
+      "status": "available"
     },
     {
       "id": 7,
-      "title": "新媒体入门：撰写文创产品文案",
-      "description": "为一款文创产品撰写吸引人的营销文案",
-      "role": "operator",
-      "difficulty": "初级",
-      "exp": 50,
+      "title": "文创IP形象设计",
+      "description": "基于夏同龢或苗族文化，设计一个可爱的IP形象",
+      "role": "designer",
+      "difficulty": "高级",
+      "exp": 250,
       "steps": [
-        "选择文创集中的一款产品",
-        "分析产品特点和目标客户",
-        "撰写小红书风格文案（100-200字）",
-        "撰写抖音短视频脚本（30秒）",
-        "设计3个话题标签"
+        "确定IP形象定位和性格",
+        "设计形象外观特征",
+        "绘制多角度草图",
+        "设计表情包和衍生应用",
+        "撰写IP故事背景"
       ],
       "rewards": {
-        "exp": 50,
-        "coins": 10,
-        "achievement": null
+        "exp": 250,
+        "coins": 60,
+        "achievement": "ip_creator"
       },
-      "estimatedTime": "25分钟",
-      "category": "运营任务",
+      "estimatedTime": "60分钟",
+      "category": "IP设计",
       "status": "available"
     },
     {
       "id": 8,
-      "title": "研学路线：设计非遗体验一日游",
-      "description": "策划一条麻江非遗体验研学路线，包含行程、活动、预算",
+      "title": "社交媒体首发",
+      "description": "撰写一篇引人入胜的非遗故事推文，学习新媒体传播技巧",
       "role": "operator",
-      "difficulty": "中级",
-      "exp": 120,
+      "difficulty": "初级",
+      "exp": 60,
       "steps": [
-        "确定研学主题（如'蜡染文化之旅'）",
-        "选择3-5个体验点（村寨、工坊、博物馆等）",
-        "设计每个点的体验活动（30-60分钟）",
-        "安排行程时间表（8:00-18:00）",
-        "计算人均费用预算",
-        "撰写路线推广文案（300字）"
+        "选择一个非遗主题",
+        "撰写吸引眼球的标题",
+        "编写故事内容",
+        "添加合适的话题标签"
       ],
       "rewards": {
-        "exp": 120,
-        "coins": 40,
-        "achievement": "研学规划师"
+        "exp": 60,
+        "coins": 15,
+        "achievement": null
       },
-      "estimatedTime": "75分钟",
-      "category": "运营任务",
+      "estimatedTime": "20分钟",
+      "category": "内容创作",
       "status": "available"
     },
     {
       "id": 9,
-      "title": "直播策划：非遗技艺直播带货",
-      "description": "策划一场非遗产品直播活动，从脚本到变现的完整流程",
+      "title": "麻江非遗研学路线策划",
+      "description": "设计一条适合大学生的麻江非遗深度体验路线",
       "role": "operator",
-      "difficulty": "高级",
-      "exp": 180,
-      "steps": [
-        "选择直播主题和产品（3-5款）",
-        "撰写直播脚本（包含开场、介绍、互动、促销）",
-        "设计互动环节（抽奖、答题、优惠券等）",
-        "制定直播时间和宣传计划",
-        "设计促销方案（满减、秒杀、组合套餐）",
-        "预估销售目标和ROI分析",
-        "准备应急预案（断网、冷场等情况）"
-      ],
-      "rewards": {
-        "exp": 180,
-        "coins": 80,
-        "achievement": "直播达人"
-      },
-      "estimatedTime": "120分钟",
-      "category": "运营任务",
-      "status": "locked"
-    },
-    {
-      "id": 10,
-      "title": "社区运营：组织非遗手工体验活动",
-      "description": "在社区或学校组织一次非遗手工体验活动，记录全过程",
-      "role": "operator",
-      "difficulty": "高级",
+      "difficulty": "中级",
       "exp": 150,
       "steps": [
-        "选择体验项目（如蜡染、刺绣、编织）",
-        "制定活动方案（时间、地点、人数、流程）",
-        "准备材料清单和预算",
-        "设计宣传海报和报名表",
-        "撰写活动新闻稿（模拟）",
-        "制作活动总结PPT"
+        "了解麻江主要非遗景点",
+        "规划游览时间和顺序",
+        "设计互动体验环节",
+        "编写路线说明文案",
+        "制作行程表"
       ],
       "rewards": {
         "exp": 150,
-        "coins": 60,
-        "achievement": "社区推广大使"
+        "coins": 35,
+        "achievement": null
       },
-      "estimatedTime": "90分钟",
-      "category": "运营任务",
+      "estimatedTime": "35分钟",
+      "category": "活动策划",
+      "status": "available"
+    },
+    {
+      "id": 10,
+      "title": "非遗短视频脚本创作",
+      "description": "为蜡染或银饰制作过程创作一个60秒的短视频脚本",
+      "role": "operator",
+      "difficulty": "中级",
+      "exp": 130,
+      "steps": [
+        "选择非遗主题",
+        "设计视频结构和节奏",
+        "撰写旁白文案",
+        "规划镜头和画面",
+        "添加音乐和字幕建议"
+      ],
+      "rewards": {
+        "exp": 130,
+        "coins": 30,
+        "achievement": null
+      },
+      "estimatedTime": "30分钟",
+      "category": "视频创作",
       "status": "available"
     },
     {
       "id": 11,
-      "title": "跨界融合：非遗+科技创新方案",
-      "description": "思考如何用现代科技（AR/VR/AI等）展示和传播非遗文化",
-      "role": "designer",
+      "title": "非遗主题直播策划",
+      "description": "策划一场非遗技艺展示直播活动，含互动环节设计",
+      "role": "operator",
       "difficulty": "高级",
-      "exp": 200,
+      "exp": 220,
       "steps": [
-        "选择一项非遗技艺",
-        "调研科技应用案例（国内外至少5个）",
-        "提出创新方案（如AR试穿苗服、VR体验蜡染等）",
-        "绘制产品原型图或流程图",
-        "分析可行性（技术、成本、市场）",
-        "撰写项目计划书（1000字）"
+        "确定直播主题和时长",
+        "设计直播流程和环节",
+        "准备互动话题和问题",
+        "规划礼品和抽奖环节",
+        "撰写直播宣传文案"
       ],
       "rewards": {
-        "exp": 200,
-        "coins": 100,
-        "achievement": "创新先锋"
+        "exp": 220,
+        "coins": 55,
+        "achievement": "live_planner"
       },
-      "estimatedTime": "150分钟",
-      "category": "综合任务",
-      "status": "locked"
+      "estimatedTime": "50分钟",
+      "category": "活动策划",
+      "status": "available"
     },
     {
       "id": 12,
-      "title": "数据采集：非遗传承现状调研",
-      "description": "通过问卷和访谈，了解非遗传承的现状和挑战",
-      "role": "archivist",
-      "difficulty": "中级",
-      "exp": 100,
+      "title": "跨界合作方案策划",
+      "description": "设计非遗与现代品牌的跨界合作营销方案",
+      "role": "operator",
+      "difficulty": "高级",
+      "exp": 280,
       "steps": [
-        "设计调研问卷（至少10个问题）",
-        "模拟收集20份问卷数据",
-        "进行数据统计和分析",
-        "绘制数据图表（饼图、柱状图等）",
-        "撰写调研报告（800字）",
-        "提出传承建议（至少3条）"
+        "分析目标品牌定位",
+        "提炼非遗文化卖点",
+        "设计合作产品概念",
+        "规划营销传播策略",
+        "撰写完整合作方案"
       ],
       "rewards": {
-        "exp": 100,
-        "coins": 35,
-        "achievement": "数据分析师"
+        "exp": 280,
+        "coins": 70,
+        "achievement": "marketing_strategist"
       },
-      "estimatedTime": "60分钟",
-      "category": "实践任务",
+      "estimatedTime": "70分钟",
+      "category": "营销策划",
       "status": "available"
     }
   ]

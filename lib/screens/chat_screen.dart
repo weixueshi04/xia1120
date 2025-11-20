@@ -11,6 +11,7 @@ import '../utils/logger.dart';
 import '../widgets/avatar_widget.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/game_entry_card.dart';
+import 'design_assistant_screen.dart';
 import 'game_book_filing_screen.dart';
 import 'game_farm_management_screen.dart';
 import 'module_manager_screen.dart';
@@ -211,6 +212,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _handleQuickQuestionTap(String key) {
+    if (key == 'AI设计') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const DesignAssistantScreen(),
+        ),
+      );
+      return;
+    }
+
     String question;
     switch (key) {
       case '非遗':
@@ -475,6 +486,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget _buildQuickQuestions() {
     final chips = [
       {'icon': '🎨', 'label': '非遗'},
+      {'icon': '🤖', 'label': 'AI设计'},
       {'icon': '💡', 'label': '设计'},
       {'icon': '🧭', 'label': '研学'},
       {'icon': '📣', 'label': '运营'},

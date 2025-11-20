@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import 'feedback_center_screen.dart';
 import 'module_manager_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -108,6 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildMenuItem(Icons.favorite, '我的收藏', () {}),
           const Divider(height: 1),
           _buildMenuItem(Icons.emoji_events, '我的成就', () {}),
+          const Divider(height: 1),
+          _buildMenuItem(Icons.feedback, '反馈中心', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackCenterScreen()));
+          }),
           const Divider(height: 1),
           _buildMenuItem(Icons.storage, '知识模块管理', () {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const ModuleManagerScreen()));
