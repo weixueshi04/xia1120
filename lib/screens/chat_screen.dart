@@ -444,8 +444,6 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
-            _buildQuickQuestions(),
-            const SizedBox(height: 8),
             _buildGameEntrySection(),
             const SizedBox(height: 8),
             Expanded(
@@ -464,6 +462,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: _buildMessageList(),
               ),
             ),
+            const SizedBox(height: 8),
+            _buildQuickQuestions(),
             const SizedBox(height: 4),
             _buildInputArea(),
           ],
