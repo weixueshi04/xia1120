@@ -1,0 +1,368 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../models/message.dart';
+import '../models/game_definition.dart';
+import '../widgets/avatar_widget.dart';
+import '../widgets/chat_bubble.dart';
+import '../widgets/batik_background_painter.dart';
+import '../widgets/game_entry_card.dart';
+import '../services/rag_service.dart';
+import '../services/baidu_api.dart';
+import '../services/baidu_speech_service.dart';
+import '../config/theme.dart';
+import '../config/api_config.dart';
+import '../utils/logger.dart';
+import 'module_manager_screen.dart';
+import 'proxy_status_screen.dart';
+import 'game_book_filing_screen.dart';
+import 'game_farm_management_screen.dart';
+
+// 自定义蜡染背景绘制类
+class BatikBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = MiaoTheme.indigoDye.withAlpha((0.05 * 255).round())
+      ..style = PaintingStyle.fill;
+
+    // 背景填充
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    // 绘制简单的蜡染风格图案
+    final patternPaint = Paint()
+      ..color = MiaoTheme.indigoDye.withAlpha((0.1 * 255).round())
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // 绘制网格状图案模拟蜡染纹理
+    const gridSize = 30.0;
+    for (double x = 0; x <= size.width; x += gridSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), patternPaint);
+    }
+    for (double y = 0; y <= size.height; y += gridSize) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), patternPaint);
+    }
+
+    // 绘制一些圆点装饰
+    final dotPaint = Paint()
+      ..color = MiaoTheme.scholarGold.withAlpha((0.1 * 255).round())
+      ..style = PaintingStyle.fill;
+
+    for (double x = 0; x < size.width; x += 60) {
+      for (double y = 0; y < size.height; y += 60) {
+        canvas.drawCircle(Offset(x + 30, y + 30), 3, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final List<Message> _messages = [];
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final RagService _ragService = RagService();
+  final BaiduAPIService _baiduService = BaiduAPIService();
+  final List<GameDefinition> _games = const [
+    GameDefinition(
+      id: 'book_filing',
+      title: '非遗档案整理',
+      subtitle: '和夏同龢一起建数字基因库',
+      estimatedDuration: '3-5 分钟',
+      roleTag: '技艺守护',
+    ),
+    GameDefinition(
+      id: 'farm_management',
+      title: '麻江非遗小镇',
+      subtitle: '平衡工坊/体验/社区收益',
+      estimatedDuration: '5-8 分钟',
+      roleTag: '运营策划',
+    ),
+  ];
+  
+  final BaiduSpeechService _speechService = BaiduSpeechService(); // ⬅️ 新增
+  bool _isTTSEnabled = false; // ⬅️ TTS开关 - 默认关闭
+  bool _isRecording = false; // ⬅️ 录音状态
+  
+  AvatarState _avatarState = AvatarState.idle;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+    _addWelcomeMessage();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    _speechService.dispose(); // ⬅️ 新增
+    super.dispose();
+  }
+
+Future<void> _initializeServices() async {
+  await _ragService.initialize();
+    
+  try {
+    // 加载百度语音配置
+    final config = await APIConfig().getBaiduSpeechConfig();
+    _speechService.configure(
+      apiKey: config['apiKey'] as String,
+      secretKey: config['secretKey'] as String,
+    );
+    Logger.info('百度语音服务已配置');
+  } catch (e) {
+    Logger.error('语音服务配置失败', error: e);
+  }
+}
+
+
+  void _addWelcomeMessage() {
+    setState(() {
+      _messages.add(Message.assistant(
+        '你好！这里是“夏同龢 · 麻江非遗数字文创平台”。\n\n我可以帮你：\n1) 了解麻江非遗技艺与故事，搭建数字基因库；\n2) 共创文创设计/体验方案，服务大学生和手艺人；\n3) 讲好品牌故事、制定营销脚本，连接消费者。你想先聊哪一块？',
+      ));
+    });
+  }
+    setState(() {
+    setState(() {
+      _messages.add(Message.assistant(
+        '你好！这里是“夏同龢 · 麻江非遗数字文创平台”。\n\n我可以帮你：\n1) 了解麻江非遗技艺与故事，搭建数字基因库；\n2) 共创文创设计/体验方案，服务大学生和手艺人；\n3) 讲好品牌故事、制定营销脚本，连接消费者。你想先聊哪一块？',
+      ));
+    });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          // 整体背景使用渐变
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              MiaoTheme.waxWhite,
+              Colors.white.withAlpha((0.8 * 255).round()),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            // 顶部AppBar
+            _buildAppBar(),
+            
+            // 主要内容区域
+            Expanded(
+              child: Row(
+                children: [
+                  // 左侧：数字人舞台
+                  _buildAvatarStage(),
+                  
+                  // 右侧：对话内容
+                  _buildChatPanel(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 数字人舞台
+  Widget _buildAvatarStage() {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.38, // 占38%宽度
+      decoration: BoxDecoration(
+        // 舞台背景
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            MiaoTheme.indigoDye.withAlpha((0.05 * 255).round()),
+            MiaoTheme.waxWhite.withAlpha((0.8 * 255).round()),
+          ],
+        ),
+        // 右侧阴影
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.05 * 255).round()),
+            blurRadius: 15,
+            offset: const Offset(5, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 角色名称
+          _buildAvatarTitle(),
+          
+          // 数字人动画
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 背景装饰
+                _buildStageDecoration(),
+                
+                // Lottie动画
+                AvatarWidget(
+                  state: _avatarState,
+                  size: MediaQuery.of(context).size.width * 0.35,
+                ),
+                
+                // 状态指示器
+                _buildStatusIndicator(),
+              ],
+            ),
+          ),
+          
+          // 底部状态文字
+          _buildAvatarStatus(),
+        ],
+      ),
+    );
+  }
+
+  // 聊天面板
+  Widget _buildChatPanel() {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            // 知识盲盒按钮（移到这里）
+            _buildQuickQuestions(),
+            
+            const SizedBox(height: 8),
+
+            _buildGameEntrySection(),
+
+            const SizedBox(height: 8),
+            
+            // 消息列表
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: _buildMessageList(),
+              ),
+            ),
+            
+            // 底部输入区
+            _buildInputArea(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 舞台装饰
+  Widget _buildStageDecoration() {
+    return Stack(
+      children: [
+        // 光晕效果
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.0,
+                colors: [
+                  MiaoTheme.scholarGold.withAlpha((0.1 * 255).round()),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 蜡染纹样背景
+        CustomPaint(
+          painter: BatikPatternPainter(
+            color: MiaoTheme.indigoDye.withAlpha((0.03 * 255).round()),
+          ),
+          size: Size.infinite,
+        ),
+      ],
+    );
+  }
+
+  // 状态指示器
+  Widget _buildStatusIndicator() {
+    if (_avatarState == AvatarState.idle) return const SizedBox();
+    
+    return Positioned(
+      bottom: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: _avatarState == AvatarState.thinking
+              ? MiaoTheme.scholarGold
+              : MiaoTheme.mapleRed,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: (_avatarState == AvatarState.thinking
+                      ? MiaoTheme.scholarGold
+                      : MiaoTheme.mapleRed)
+                  .withAlpha((0.3 * 255).round()),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _avatarState == AvatarState.thinking
+                  ? Icons.psychology
+                  : Icons.record_voice_over,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _avatarState == AvatarState.thinking ? '思考中...' : '说话中...',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              MiaoTheme.indigoDye,
+              MiaoTheme.indigoDye.withAlpha((0.8 * 255).round()),
+            ]

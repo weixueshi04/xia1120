@@ -1,0 +1,590 @@
+---
+alwaysApply: true
+---
+# 夏同龢数字人开发项目 - Cursor 用户规则
+
+## 项目概述
+本项目是"夏同龢数字人AI助手"，专为少数民族地区教育均衡而设计。主要技术栈：
+- **前端**: Flutter (Dart 3.5.0+)
+- **后端代理**: Node.js (Express)
+- **核心功能**: RAG检索、AI对话、语音交互、知识管理
+
+---
+
+## 一、代码风格规范
+
+### 1.1 Dart/Flutter 代码规范
+
+#### 命名规范
+- **类名**: 使用大驼峰命名 (PascalCase)，如 `RagService`, `ChatScreen`
+- **变量/方法名**: 使用小驼峰命名 (camelCase)，如 `_isProcessing`, `_handleSend()`
+- **私有成员**: 必须以 `_` 开头，如 `_messages`, `_ragService`
+- **常量**: 使用 `lowerCamelCase` 或 `UPPER_SNAKE_CASE`，如 `const apiKey = 'xxx'` 或 `const MAX_RETRY = 3`
+- **文件名**: 使用小写+下划线，如 `chat_screen.dart`, `rag_service.dart`
+- **枚举**: 使用大驼峰，枚举值使用小驼峰，如 `enum MessageStatus { sending, sent, error }`
+
+#### 代码格式
+- 使用 2 个空格缩进（不是 Tab）
+- 每行代码不超过 100 个字符（可适当放宽到 120）
+- 运算符前后要有空格：`a + b`，而不是 `a+b`
+- 方法参数列表过长时，每个参数占一行：
+```dart
+Future<void> processFeedback({
+  required String query,
+  required String answer,
+  required bool isHelpful,
+  String? source,
+  Map<String, dynamic>? metadata,
+}) async {
+  // ...
+}
+```
+
+#### 导入顺序
+1. Dart SDK 导入
+2. Flutter 包导入
+3. 第三方包导入
+4. 项目内部导入（使用相对路径）
+```dart
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/message.dart';
+import '../utils/logger.dart';
+```
+
+#### Widget 构建规范
+- 复杂 Widget 必须拆分为私有方法，方法名以 `_build` 开头
+- Widget 方法按使用顺序排列（从上到下）
+- 使用 `const` 构造函数优化性能
+```dart
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Column(
+      children: [
+        _buildAppBar(),
+        _buildAvatarStage(),
+        _buildChatPanel(),
+      ],
+    ),
+  );
+}
+
+Widget _buildAppBar() {
+  // ...
+}
+```
+
+### 1.2 注释规范
+
+#### 文档注释
+- 所有公共类、方法、属性必须使用 `///` 文档注释
+- 注释应说明功能、参数、返回值、异常情况
+- 复杂逻辑必须添加行内注释
+```dart
+/// 统一的RAG服务 - 智能编排本地和远程资源
+/// 
+/// 核心策略:
+/// 1. 本地优先 - 快速响应,节省成本
+/// 2. 分级响应 - 根据置信度决定是否调用API
+/// 3. 混合增强 - 中等置信度时用本地答案作为上下文
+/// 4. 反馈学习 - 将有效问答加入本地知识库
+class RagService {
+  /// 主搜索接口 - 分级响应策略
+  /// 
+  /// 流程:
+  /// 1. 本地知识库检索
+  /// 2. 根据置信度分级处理
+  /// 
+  /// 返回 [AnswerResponse] 或 null
+  Future<AnswerResponse?> search(String query) async {
+    // ...
+  }
+}
+```
+
+#### 行内注释
+- 使用 `//` 进行行内注释
+- 注释应解释"为什么"而不是"是什么"
+- 关键业务逻辑必须注释
+```dart
+// 高置信度 - 直接返回本地答案
+if (localResult != null && localResult.confidence >= highConfidenceThreshold) {
+  return localResult;
+}
+```
+
+### 1.3 错误处理规范
+
+#### 异常处理
+- 所有异步操作必须使用 `try-catch` 包裹
+- 捕获异常后必须记录日志，使用 `Logger.error()`
+- 向用户展示友好的错误提示
+- 不要吞掉异常（除非有明确理由）
+```dart
+Future<void> _initializeServices() async {
+  try {
+    await _ragService.initialize();
+    final config = await APIConfig().getBaiduSpeechConfig();
+    _speechService.configure(
+      apiKey: config['apiKey'] as String,
+      secretKey: config['secretKey'] as String,
+    );
+    Logger.info('百度语音服务已配置');
+  } catch (e, stackTrace) {
+    Logger.error('语音服务配置失败', error: e, stackTrace: stackTrace);
+    // 不抛出异常，允许应用继续运行
+  }
+}
+```
+
+#### 空值安全
+- 充分利用 Dart 的空值安全特性
+- 使用 `?` 和 `!` 操作符时要有明确理由
+- 优先使用 `??` 提供默认值
+```dart
+final answer = resp?.content ?? '暂无答案';
+final count = list?.length ?? 0;
+```
+
+### 1.4 日志规范
+
+#### 使用统一的 Logger
+- 所有日志必须使用 `lib/utils/logger.dart` 中的 `Logger` 类
+- 根据日志级别选择合适的方法：
+  - `Logger.debug()`: 调试信息（开发时使用）
+  - `Logger.info()`: 一般信息（服务启动、配置成功等）
+  - `Logger.warning()`: 警告信息（非致命错误）
+  - `Logger.error()`: 错误信息（必须包含 error 和 stackTrace）
+- 日志消息要清晰、有意义，包含必要的上下文
+```dart
+Logger.info('RAG服务初始化完成: 本地知识库 + 百度API');
+Logger.warning('百度API未配置,将仅使用本地知识库');
+Logger.error('搜索过程出错', error: e, stackTrace: stackTrace);
+```
+
+---
+
+## 二、架构规范
+
+### 2.1 目录结构
+项目采用清晰的分层架构：
+```
+lib/
+├── config/          # 配置文件（API配置、主题、文化配置等）
+├── models/          # 数据模型（使用 json_serializable）
+├── screens/         # 页面/屏幕
+├── services/        # 业务逻辑服务（RAG、API、存储等）
+├── widgets/         # 可复用组件（包括IP形象组件）
+└── utils/           # 工具类（Logger等）
+```
+
+### 2.2 服务层规范
+- 服务类应该是单例或通过依赖注入管理
+- 服务方法应该是异步的（返回 `Future`）
+- 服务应该处理自己的错误，不向上抛出（除非是致命错误）
+- 服务初始化方法命名为 `initialize()`
+```dart
+class RagService {
+  final LocalRAGService _local = LocalRAGService();
+  final BaiduAPIService _remote = BaiduAPIService();
+
+  /// 初始化服务
+  Future<void> initialize() async {
+    await _local.initialize();
+    if (!_remote.isConfigured()) {
+      Logger.warning('百度API未配置,将仅使用本地知识库');
+    }
+  }
+}
+```
+
+#### 2.2.1 RAG服务扩展规范
+- RAG服务应支持智能形象选择，根据查询内容自动匹配最合适的IP形象
+- 实现知识类型分类，优先检索对应知识库
+- 形象选择逻辑应封装在服务内部，通过私有方法实现
+```dart
+/// 扩展的RAG服务 - 支持智能形象选择
+class XiaTongheRAGService {
+  /// 根据查询内容智能选择形象
+  IPCharacterStyle _selectCharacterStyle(String query) {
+    if (_containsCulturalKeywords(query)) {
+      return IPCharacterStyle.miaoCultural;
+    } else if (_containsAgriculturalKeywords(query)) {
+      return IPCharacterStyle.modernFarmer;
+    } else {
+      return IPCharacterStyle.hanScholar;
+    }
+  }
+
+  /// 获取对应形象的对话提示词
+  String _getCharacterPrompt(IPCharacterStyle style) {
+    switch (style) {
+      case IPCharacterStyle.hanScholar:
+        return "你是一个博学亲切的汉族书生，善于用典故和故事启发思考...";
+      case IPCharacterStyle.miaoCultural:
+        return "你是一个热情洋溢的苗族文化使者，精通苗族非遗技艺...";
+      case IPCharacterStyle.modernFarmer:
+        return "你是一个专业的现代农业技术员，熟悉农业科技...";
+    }
+  }
+}
+```
+
+#### 2.2.2 知识类型分类规范
+- 定义清晰的知识类型枚举，用于路由检索策略
+- 实现查询分类方法，将用户查询映射到对应的知识类型
+- 根据知识类型选择对应的形象和检索策略
+```dart
+/// 知识类型枚举
+enum KnowledgeType {
+  educational,    // K12教育知识
+  cultural,       // 民族文化非遗
+  agricultural,   // 农业技术
+  psychological,  // 心理健康
+}
+
+class RagService {
+  /// 智能路由检索策略
+  Future<AnswerResponse> search(String query) async {
+    final knowledgeType = _classifyQuery(query);
+    final characterStyle = _mapKnowledgeToCharacter(knowledgeType);
+
+    // 优先检索对应知识库
+    final results = await _searchKnowledgeBase(query, knowledgeType);
+
+    return AnswerResponse(
+      content: results.content,
+      confidence: results.confidence,
+      characterStyle: characterStyle,
+      sources: results.sources,
+    );
+  }
+}
+```
+
+### 2.3 Widget组件规范
+
+#### IP形象组件规范
+- IP形象组件应支持多种形象风格，根据查询内容动态切换
+- 组件应包含状态、情感和形象样式三个核心属性
+- 使用 `AnimatedContainer` 实现平滑的形象切换动画
+- 不同形象应封装为独立的构建方法
+```dart
+/// IP形象组件 - 支持多形象切换
+class IPAvatarWidget extends StatefulWidget {
+  final IPCharacterState state;
+  final IPEmotionModel emotion;
+  final IPCharacterStyle style;
+
+  const IPAvatarWidget({
+    super.key,
+    required this.state,
+    required this.emotion,
+    required this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      child: _buildCharacterByStyle(style),
+    );
+  }
+
+  Widget _buildCharacterByStyle(IPCharacterStyle style) {
+    // 根据形象返回不同的动画组件
+    switch (style) {
+      case IPCharacterStyle.hanScholar:
+        return _buildScholarAvatar();
+      case IPCharacterStyle.miaoCultural:
+        return _buildMiaoAvatar();
+      case IPCharacterStyle.modernFarmer:
+        return _buildFarmerAvatar();
+    }
+  }
+}
+```
+
+### 2.4 模型规范
+- 使用 `json_annotation` 和 `json_serializable` 进行序列化
+- 提供 `fromJson` 和 `toJson` 方法
+- 使用工厂构造函数创建实例
+- 提供 `copyWith` 方法用于不可变更新
+```dart
+@JsonSerializable()
+class Message {
+  final String id;
+  final String content;
+  final bool isUser;
+  final DateTime timestamp;
+
+  Message({
+    required this.id,
+    required this.content,
+    required this.isUser,
+    required this.timestamp,
+  });
+
+  factory Message.user(String content) {
+    return Message(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      content: content,
+      isUser: true,
+      timestamp: DateTime.now(),
+    );
+  }
+
+  Message copyWith({String? content, DateTime? timestamp}) {
+    return Message(
+      id: id,
+      content: content ?? this.content,
+      isUser: isUser,
+      timestamp: timestamp ?? this.timestamp,
+    );
+  }
+}
+```
+
+### 2.5 状态管理
+- 使用 `StatefulWidget` 管理局部状态
+- 复杂状态考虑使用 Provider 或 Riverpod（如需要）
+- 状态更新必须使用 `setState()`
+- 异步操作后检查 `mounted` 状态
+```dart
+Future<void> _handleSend() async {
+  setState(() {
+    _isProcessing = true;
+    _avatarState = AvatarState.thinking;
+  });
+
+  try {
+    final answer = await _ragService.search(text);
+    if (!mounted) return; // 检查组件是否还在树中
+    
+    setState(() {
+      _messages.add(Message.assistant(answer));
+      _isProcessing = false;
+    });
+  } catch (e) {
+    Logger.error('发送消息失败', error: e);
+  }
+}
+```
+
+---
+
+## 三、可维护性要求
+
+### 3.1 代码复用
+- 提取公共逻辑到工具类或服务
+- Widget 组件化，可复用组件放在 `widgets/` 目录
+- 避免重复代码，使用函数或类封装
+
+### 3.2 配置管理
+- 所有配置项集中在 `lib/config/` 目录
+- API 密钥等敏感信息使用环境变量或配置文件（不提交到版本控制）
+- 使用 `APIConfig` 类统一管理配置
+- 文化相关配置应单独管理，便于维护和扩展
+
+#### 文化配置规范
+- 在 `lib/config/cultural_config.dart` 中定义文化相关配置
+- 包含文化术语映射、敏感话题列表等
+- 提供文化敏感性检查方法，确保内容符合文化规范
+```dart
+/// 文化配置类 - 管理文化相关配置和检查
+class CulturalConfig {
+  /// 文化术语映射（中英文对照）
+  static const Map<String, String> culturalTerms = {
+    '苗族': 'Miao ethnic group',
+    '蜡染': 'batik',
+    '非遗': 'intangible cultural heritage',
+  };
+
+  /// 敏感话题列表
+  static const List<String> sensitiveTopics = [
+    '民族歧视',
+    '文化偏见',
+    '宗教敏感',
+  ];
+
+  /// 文化敏感性检查
+  /// 
+  /// 检查文本是否包含敏感内容
+  /// 返回 true 表示包含敏感内容，需要处理
+  static bool containsSensitiveContent(String text) {
+    return sensitiveTopics.any((topic) => text.contains(topic));
+  }
+}
+```
+
+### 3.3 性能优化
+- 使用 `const` 构造函数减少重建
+- 长列表使用 `ListView.builder` 而不是 `ListView`
+- 图片资源使用适当的分辨率
+- 避免在 `build` 方法中执行耗时操作
+
+### 3.4 测试
+- 关键业务逻辑必须编写单元测试
+- 测试文件放在 `test/` 目录，与源码结构对应
+- 测试命名：`被测试类名_test.dart`
+
+---
+
+## 四、Node.js 代码规范（baidu-proxy）
+
+### 4.1 代码风格
+- 使用 2 个空格缩进
+- 使用 `const` 和 `let`，避免 `var`
+- 使用箭头函数（如适用）
+- 使用模板字符串而不是字符串拼接
+
+### 4.2 错误处理
+- 所有异步操作使用 `try-catch`
+- 返回统一的错误格式
+- 记录详细的错误日志
+```javascript
+app.post('/api/baidu/chat', async (req, res) => {
+  try {
+    const response = await axios.post(url, data, { headers });
+    res.json(response.data);
+  } catch (error) {
+    console.error('❌ Agent调用失败:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: 'Agent调用失败', 
+      details: error.response?.data || error.message 
+    });
+  }
+});
+```
+
+### 4.3 注释规范
+- 使用 JSDoc 注释说明接口功能
+- 关键逻辑添加行内注释
+```javascript
+/**
+ * 调用Agent对话
+ * POST /api/baidu/chat
+ * 
+ * @param {string} appId - 应用ID
+ * @param {string} bearerToken - 认证Token
+ * @param {string} query - 用户问题
+ * @param {string} conversationId - 会话ID（可选）
+ */
+app.post('/api/baidu/chat', async (req, res) => {
+  // ...
+});
+```
+
+---
+
+## 五、Git 提交规范
+
+### 5.1 提交信息格式
+使用约定式提交格式：
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+类型（type）：
+- `feat`: 新功能
+- `fix`: 修复bug
+- `docs`: 文档更新
+- `style`: 代码格式调整（不影响功能）
+- `refactor`: 重构
+- `perf`: 性能优化
+- `test`: 测试相关
+- `chore`: 构建/工具相关
+
+示例：
+```
+feat(chat): 添加语音输入功能
+
+- 实现长按录音
+- 集成百度语音识别API
+- 添加录音状态指示器
+
+Closes #123
+```
+
+---
+
+## 六、特殊要求
+
+### 6.1 文化敏感性
+- 所有用户可见的文本必须使用简体中文
+- 尊重少数民族文化，使用准确的术语
+- UI 设计体现苗族文化特色（蜡染、靛蓝等元素）
+- **必须使用 `CulturalConfig.containsSensitiveContent()` 检查所有AI生成的内容**
+- 发现敏感内容时，应拒绝生成或替换为安全内容
+- 文化术语应使用 `CulturalConfig.culturalTerms` 中的标准术语
+- 不同知识类型应匹配对应的IP形象，体现文化特色：
+  - 民族文化/非遗 → 苗族文化使者形象
+  - 农业技术 → 现代农民形象
+  - 教育知识 → 汉族书生形象
+
+### 6.2 可访问性
+- 提供清晰的视觉反馈
+- 支持键盘导航（如适用）
+- 错误信息要友好、易懂
+
+### 6.3 安全性
+- 不在代码中硬编码 API 密钥
+- 敏感数据加密存储
+- 验证用户输入，防止注入攻击
+
+---
+
+## 七、代码审查检查清单
+
+在提交代码前，确保：
+- [ ] 代码符合命名规范
+- [ ] 所有公共方法有文档注释
+- [ ] 错误处理完善，有日志记录
+- [ ] 没有硬编码的配置值
+- [ ] 代码通过 `flutter analyze` 检查
+- [ ] 没有未使用的导入
+- [ ] 异步操作正确处理
+- [ ] 状态更新使用 `setState()`
+- [ ] Widget 构建方法已拆分
+- [ ] 日志使用统一的 Logger
+- [ ] **AI生成内容已通过文化敏感性检查**
+- [ ] **IP形象选择逻辑正确实现**
+- [ ] **知识类型分类准确**
+- [ ] **文化配置使用标准术语**
+
+---
+
+## 八、常见问题
+
+### Q: 什么时候应该创建新的服务类？
+A: 当业务逻辑复杂、需要复用、或需要独立测试时，应该提取为服务类。
+
+### Q: 如何决定是否使用 StatefulWidget？
+A: 如果组件需要维护状态（如用户输入、加载状态），使用 StatefulWidget；否则使用 StatelessWidget。
+
+### Q: 错误处理的最佳实践是什么？
+A: 
+1. 在服务层捕获并记录错误
+2. 返回 null 或默认值，而不是抛出异常
+3. 在 UI 层显示友好的错误提示
+4. 使用 Logger 记录详细错误信息
+
+---
+
+## 总结
+
+遵循以上规范可以确保：
+- ✅ 代码可读性高：清晰的命名、完善的注释
+- ✅ 易于维护：分层架构、模块化设计
+- ✅ 满足编程规范：符合 Dart/Flutter 最佳实践
+- ✅ 团队协作顺畅：统一的代码风格和提交规范
+
+如有疑问，请参考项目现有代码或咨询团队。
+
+

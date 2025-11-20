@@ -1,0 +1,72 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-11-10T00:00:00Z",
+  "modules": [
+    {
+      "id": "miao_batik",
+      "name": {
+        "zh": "苗族蜡染",
+        "en": "Miao Batik"
+      },
+      "version": "1.0.0",
+      "size": 2048576,
+      "checksum": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "languages": ["zh-CN", "en-US"],
+      "priority": 100,
+      "category": "crafts",
+      "tags": ["蜡染", "非遗", "苗族", "工艺"],
+      "dependencies": [],
+      "downloadUrl": "https://api.example.com/modules/miao_batik/v1.0.0",
+      "metadata": {
+        "author": "贵州省非物质文化遗产保护中心",
+        "lastUpdated": "2025-11-01T00:00:00Z",
+        "description": "贵州省苗族蜡染工艺知识库，包含工艺流程、图案寓意、历史渊源等内容",
+        "license": "版权所有"
+      },
+      "contentType": "text",
+      "format": "json",
+      "compressionType": "gzip"
+    },
+    {
+      "id": "miao_songs",
+      "name": {
+        "zh": "苗族民歌",
+        "en": "Miao Folk Songs"
+      },
+      "version": "1.0.0",
+      "size": 5242880,
+      "checksum": "sha256:a1b2c3d4e5f6...",
+      "languages": ["zh-CN", "miao"],
+      "priority": 90,
+      "category": "music",
+      "tags": ["民歌", "非遗", "苗族", "音乐"],
+      "dependencies": [],
+      "downloadUrl": "https://api.example.com/modules/miao_songs/v1.0.0",
+      "metadata": {
+        "author": "贵州省非物质文化遗产保护中心",
+        "lastUpdated": "2025-10-15T00:00:00Z",
+        "description": "苗族民歌集，包含歌词、曲谱、演唱技法、文化背景等",
+        "license": "版权所有"
+      },
+      "contentType": "mixed",
+      "format": "json+audio",
+      "compressionType": "zip"
+    }
+  ],
+  "categories": [
+    {
+      "id": "crafts",
+      "name": {
+        "zh": "传统工艺",
+        "en": "Traditional Crafts"
+      }
+    },
+    {
+      "id": "music",
+      "name": {
+        "zh": "音乐传统",
+        "en": "Musical Traditions"
+      }
+    }
+  ]
+}

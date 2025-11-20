@@ -1,0 +1,1284 @@
+﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../models/message.dart';
+import '../models/game_definition.dart';
+import '../widgets/avatar_widget.dart';
+import '../widgets/chat_bubble.dart';
+import '../widgets/batik_background_painter.dart';
+import '../widgets/game_entry_card.dart';
+import '../services/rag_service.dart';
+import '../services/baidu_api.dart';
+import '../services/baidu_speech_service.dart';
+import '../config/theme.dart';
+import '../config/api_config.dart';
+import '../utils/logger.dart';
+import 'module_manager_screen.dart';
+import 'proxy_status_screen.dart';
+import 'game_book_filing_screen.dart';
+import 'game_farm_management_screen.dart';
+
+// 鑷畾涔夎湣鏌撹儗鏅粯鍒剁被
+class BatikBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = MiaoTheme.indigoDye.withAlpha((0.05 * 255).round())
+      ..style = PaintingStyle.fill;
+
+    // 鑳屾櫙濉厖
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+
+    // 缁樺埗绠€鍗曠殑铚℃煋椋庢牸鍥炬
+    final patternPaint = Paint()
+      ..color = MiaoTheme.indigoDye.withAlpha((0.1 * 255).round())
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    // 缁樺埗缃戞牸鐘跺浘妗堟ā鎷熻湣鏌撶汗鐞?
+    const gridSize = 30.0;
+    for (double x = 0; x <= size.width; x += gridSize) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), patternPaint);
+    }
+    for (double y = 0; y <= size.height; y += gridSize) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), patternPaint);
+    }
+
+    // 缁樺埗涓€浜涘渾鐐硅楗?
+    final dotPaint = Paint()
+      ..color = MiaoTheme.scholarGold.withAlpha((0.1 * 255).round())
+      ..style = PaintingStyle.fill;
+
+    for (double x = 0; x < size.width; x += 60) {
+      for (double y = 0; y < size.height; y += 60) {
+        canvas.drawCircle(Offset(x + 30, y + 30), 3, dotPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final List<Message> _messages = [];
+  final TextEditingController _textController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final RagService _ragService = RagService();
+  final BaiduAPIService _baiduService = BaiduAPIService();
+  final List<GameDefinition> _games = const [
+    GameDefinition(
+      id: 'book_filing',
+      title: '鍙ょ睄褰掓。',
+      subtitle: '鍜屽鍚岄劲涓€璧锋暣鐞嗙粡鍏?,
+      estimatedDuration: '3-5 鍒嗛挓',
+      roleTag: '鐘跺厓闄粌',
+    ),
+    GameDefinition(
+      id: 'farm_management',
+      title: '楹绘睙鍐滃満缁忚惀',
+      subtitle: '浣撻獙绉戞妧鍔╁啘涓庝骇涓氬彂灞?,
+      estimatedDuration: '5-8 鍒嗛挓',
+      roleTag: '鍔╁啘瀹炶返',
+    ),
+  ];
+  
+  final BaiduSpeechService _speechService = BaiduSpeechService(); // 猬咃笍 鏂板
+  bool _isTTSEnabled = false; // 猬咃笍 TTS寮€鍏?- 榛樿鍏抽棴
+  bool _isRecording = false; // 猬咃笍 褰曢煶鐘舵€?
+  
+  AvatarState _avatarState = AvatarState.idle;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+    _addWelcomeMessage();
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    _scrollController.dispose();
+    _speechService.dispose(); // 猬咃笍 鏂板
+    super.dispose();
+  }
+
+Future<void> _initializeServices() async {
+  await _ragService.initialize();
+    
+  try {
+    // 鍔犺浇鐧惧害璇煶閰嶇疆
+    final config = await APIConfig().getBaiduSpeechConfig();
+    _speechService.configure(
+      apiKey: config['apiKey'] as String,
+      secretKey: config['secretKey'] as String,
+    );
+    Logger.info('鐧惧害璇煶鏈嶅姟宸查厤缃?);
+  } catch (e) {
+    Logger.error('璇煶鏈嶅姟閰嶇疆澶辫触', error: e);
+  }
+}
+
+
+  void _addWelcomeMessage() {
+    setState(() {
+      _messages.add(Message.assistant(
+        '浣犲ソ锛佹垜鏄鍚岄劲锛屽緢楂樺叴璁よ瘑浣狅紒\n\n鎴戝彲浠ヤ负浣犱粙缁嶈吹宸為夯姹熺殑鏂囧寲銆侀潪閬楁妧鑹猴紝涔熷彲浠ュ府鍔╀綘瀛︿範鐭ヨ瘑銆傛湁浠€涔堟兂闂殑鍚楋紵',
+      ));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          // 鏁翠綋鑳屾櫙浣跨敤娓愬彉
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              MiaoTheme.waxWhite,
+              Colors.white.withAlpha((0.8 * 255).round()),
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            // 椤堕儴AppBar
+            _buildAppBar(),
+            
+            // 涓昏鍐呭鍖哄煙
+            Expanded(
+              child: Row(
+                children: [
+                  // 宸︿晶锛氭暟瀛椾汉鑸炲彴
+                  _buildAvatarStage(),
+                  
+                  // 鍙充晶锛氬璇濆唴瀹?
+                  _buildChatPanel(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 鏁板瓧浜鸿垶鍙?
+  Widget _buildAvatarStage() {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.38, // 鍗?8%瀹藉害
+      decoration: BoxDecoration(
+        // 鑸炲彴鑳屾櫙
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            MiaoTheme.indigoDye.withAlpha((0.05 * 255).round()),
+            MiaoTheme.waxWhite.withAlpha((0.8 * 255).round()),
+          ],
+        ),
+        // 鍙充晶闃村奖
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha((0.05 * 255).round()),
+            blurRadius: 15,
+            offset: const Offset(5, 0),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // 瑙掕壊鍚嶇О
+          _buildAvatarTitle(),
+          
+          // 鏁板瓧浜哄姩鐢?
+          Expanded(
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 鑳屾櫙瑁呴グ
+                _buildStageDecoration(),
+                
+                // Lottie鍔ㄧ敾
+                AvatarWidget(
+                  state: _avatarState,
+                  size: MediaQuery.of(context).size.width * 0.35,
+                ),
+                
+                // 鐘舵€佹寚绀哄櫒
+                _buildStatusIndicator(),
+              ],
+            ),
+          ),
+          
+          // 搴曢儴鐘舵€佹枃瀛?
+          _buildAvatarStatus(),
+        ],
+      ),
+    );
+  }
+
+  // 鑱婂ぉ闈㈡澘
+  Widget _buildChatPanel() {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          children: [
+            // 鐭ヨ瘑鐩茬洅鎸夐挳锛堢Щ鍒拌繖閲岋級
+            _buildQuickQuestions(),
+            
+            const SizedBox(height: 8),
+
+            _buildGameEntrySection(),
+
+            const SizedBox(height: 8),
+            
+            // 娑堟伅鍒楄〃
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.5 * 255).round()),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: _buildMessageList(),
+              ),
+            ),
+            
+            // 搴曢儴杈撳叆鍖?
+            _buildInputArea(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 鑸炲彴瑁呴グ
+  Widget _buildStageDecoration() {
+    return Stack(
+      children: [
+        // 鍏夋檿鏁堟灉
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.topCenter,
+                radius: 1.0,
+                colors: [
+                  MiaoTheme.scholarGold.withAlpha((0.1 * 255).round()),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+        
+        // 铚℃煋绾规牱鑳屾櫙
+        CustomPaint(
+          painter: BatikPatternPainter(
+            color: MiaoTheme.indigoDye.withAlpha((0.03 * 255).round()),
+          ),
+          size: Size.infinite,
+        ),
+      ],
+    );
+  }
+
+  // 鐘舵€佹寚绀哄櫒
+  Widget _buildStatusIndicator() {
+    if (_avatarState == AvatarState.idle) return const SizedBox();
+    
+    return Positioned(
+      bottom: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: _avatarState == AvatarState.thinking
+              ? MiaoTheme.scholarGold
+              : MiaoTheme.mapleRed,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: (_avatarState == AvatarState.thinking
+                      ? MiaoTheme.scholarGold
+                      : MiaoTheme.mapleRed)
+                  .withAlpha((0.3 * 255).round()),
+              blurRadius: 8,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _avatarState == AvatarState.thinking
+                  ? Icons.psychology
+                  : Icons.record_voice_over,
+              color: Colors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _avatarState == AvatarState.thinking ? '鎬濊€冧腑...' : '璇磋瘽涓?..',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              MiaoTheme.indigoDye,
+              MiaoTheme.indigoDye.withAlpha((0.8 * 255).round()),
+            ],
+          ),
+        ),
+      ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 鐘跺厓甯藉浘鏍?
+          Container(
+            padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+              color: MiaoTheme.scholarGold.withAlpha((0.2 * 255).round()),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.school,
+              color: MiaoTheme.scholarGold,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '灏戝勾澶忓悓榫?,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '楹绘睙鐘跺厓 路 鍦ㄧ嚎',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white.withAlpha((0.8 * 255).round()),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        // 猬咃笍 TTS寮€鍏虫寜閽?
+        IconButton(
+          icon: Icon(_isTTSEnabled ? Icons.volume_up : Icons.volume_off),
+          onPressed: () {
+            setState(() {
+              _isTTSEnabled = !_isTTSEnabled;
+              _speechService.setTTSEnabled(_isTTSEnabled);
+            });
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_isTTSEnabled ? '馃攰 璇煶鎾姤宸插紑鍚? : '馃攪 璇煶鎾姤宸插叧闂?),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          },
+          tooltip: _isTTSEnabled ? '鍏抽棴璇煶' : '寮€鍚闊?,
+        ),
+        
+        // 鐭ヨ瘑搴撴寜閽?
+        IconButton(
+          icon: const Icon(Icons.menu_book),
+          onPressed: () => _showKnowledgeCategories(),
+          tooltip: '鐭ヨ瘑鍒嗙被',
+        ),
+        // 鍏充簬鎸夐挳
+        IconButton(
+          icon: const Icon(Icons.info_outline),
+          onPressed: _showAboutDialog,
+          tooltip: '鍏充簬',
+        ),
+        // 妯″潡绠＄悊鍏ュ彛
+        IconButton(
+          icon: const Icon(Icons.storage),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ModuleManagerScreen()),
+            );
+          },
+          tooltip: '妯″潡绠＄悊',
+        ),
+        // 浠ｇ悊鐘舵€佸叆鍙ｏ紙浠匴eb鐜鏄剧ず锛?
+        if (kIsWeb)
+          IconButton(
+            icon: const Icon(Icons.router),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProxyStatusScreen()),
+              );
+            },
+            tooltip: '浠ｇ悊鐘舵€?,
+          ),
+      ],
+    );
+  }
+
+  
+
+  
+
+  // 瑙掕壊鍚嶇О
+  Widget _buildAvatarTitle() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: MiaoTheme.scholarGold.withAlpha((0.2 * 255).round()),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.school,
+              color: MiaoTheme.scholarGold,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            '灏戝勾澶忓悓榫?,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: MiaoTheme.indigoDye,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 搴曢儴鐘舵€佹枃瀛?
+  Widget _buildAvatarStatus() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Text(
+        _getAvatarWelcomeText(),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          color: MiaoTheme.indigoDye.withAlpha((0.7 * 255).round()),
+          fontWeight: FontWeight.w500,
+          height: 1.3,
+        ),
+      ),
+    );
+  }
+
+  /// 鑾峰彇娆㈣繋鏂囧瓧
+  String _getAvatarWelcomeText() {
+    switch (_avatarState) {
+      case AvatarState.idle:
+        return '蹇潵鍜屾垜鑱婂ぉ鍚э紒';
+      case AvatarState.thinking:
+        return '璁╂垜鎯虫兂...';
+      case AvatarState.talking:
+        return '鏉ュ惉鎴戣~';
+    }
+  }
+
+  Widget _buildMessageList() {
+    if (_messages.isEmpty) {
+      return const Center(
+        child: Text('寮€濮嬪璇濆惂锛?),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: _messages.length,
+      itemBuilder: (context, index) {
+        return ChatBubble(message: _messages[index]);
+      },
+    );
+  }
+
+  Widget _buildInputArea() {
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
+          blurRadius: 20,
+          offset: const Offset(0, -5),
+        ),
+      ],
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(30),
+        topRight: Radius.circular(30),
+      ),
+    ),
+    child: SafeArea(
+      child: Row(
+        children: [
+              // 琛ㄦ儏鎸夐挳
+              Container(
+                decoration: BoxDecoration(
+                  color: MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.emoji_emotions_outlined),
+                  color: MiaoTheme.indigoDye,
+                  onPressed: () => _showEmojiPicker(),
+                ),
+              ),
+              
+              const SizedBox(width: 8),
+              
+              // 猬咃笍 璇煶杈撳叆鎸夐挳
+              GestureDetector(
+                onLongPressStart: (_) async {
+                  // 闀挎寜寮€濮嬪綍闊?
+                  final started = await _speechService.startRecording();
+                  if (!mounted) return;
+                  if (started) {
+                    setState(() {
+                      _isRecording = true;
+                    });
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('馃帳 姝ｅ湪褰曢煶...'),
+                        duration: Duration(seconds: 10),
+                      ),
+                    );
+                  }
+                },
+                onLongPressEnd: (_) async {
+                  // 鏉惧紑鍋滄褰曢煶骞惰瘑鍒?
+                  if (_isRecording) {
+                    setState(() {
+                      _isRecording = false;
+                    });
+                    
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('馃攧 姝ｅ湪璇嗗埆...'),
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                    
+                    final text = await _speechService.stopRecordingAndRecognize();
+                    if (!mounted) return;
+                    
+                    if (text != null && text.isNotEmpty) {
+                      _textController.text = text;
+                      _handleSend();
+                    } else {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('鉂?鏈瘑鍒埌鍐呭'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _isRecording 
+                        ? MiaoTheme.mapleRed.withAlpha((0.2 * 255).round())
+                        : MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isRecording ? Icons.mic : Icons.mic_none,
+                    color: _isRecording ? MiaoTheme.mapleRed : MiaoTheme.indigoDye,
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 8),
+              
+              // 杈撳叆妗?
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: MiaoTheme.waxWhite,
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(
+                      color: MiaoTheme.indigoDye.withAlpha((0.2 * 255).round()),
+                      width: 1.5,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(
+                      hintText: '闂垜浠讳綍闂...',
+                      hintStyle: TextStyle(color: MiaoTheme.silverThread),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => _handleSend(),
+                    enabled: !_isProcessing,
+                  ),
+                ),
+              ),
+              
+              const SizedBox(width: 8),
+              
+              // 鍙戦€佹寜閽?
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: _isProcessing
+                        ? [Colors.grey, Colors.grey[400]!]
+                        : [MiaoTheme.indigoDye, MiaoTheme.indigoDye.withAlpha((0.8 * 255).round())],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_isProcessing ? Colors.grey : MiaoTheme.indigoDye)
+                          .withAlpha((0.3 * 255).round()),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    _isProcessing ? Icons.hourglass_empty : Icons.send,
+                    color: Colors.white,
+                  ),
+                  onPressed: _isProcessing ? null : _handleSend,
+                ),
+              ),
+            ],
+          ),
+    ),
+  );
+}
+
+/// 蹇嵎闂鎸夐挳锛堢煡璇嗙洸鐩掞級- 缂╁皬鐗?
+Widget _buildQuickQuestions() {
+  final List<Map<String, dynamic>> questions = [
+    {'icon': '馃帹', 'text': '闈為仐', 'color': MiaoTheme.indigoDye},
+    {'icon': '馃珢', 'text': '鍐滀笟', 'color': Colors.green[700]!},
+    {'icon': '馃摎', 'text': '瀛︿範', 'color': MiaoTheme.scholarGold},
+    {'icon': '馃幁', 'text': '鏁呬簨', 'color': MiaoTheme.mapleRed},
+  ];
+
+  return Container(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: questions.map((q) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Material(
+            color: (q['color'] as Color).withAlpha((0.1 * 255).round()),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () => _handleBlindBoxTap(q['text'] as String),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      q['icon']!,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      q['text']!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: q['color'] as Color,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(
+                      Icons.card_giftcard,
+                      size: 12,
+                      color: (q['color'] as Color).withAlpha((0.6 * 255).round()),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
+}
+
+  Widget _buildGameEntrySection() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        height: 130,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: _games.length,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, index) {
+            final game = _games[index];
+            final color = index == 0
+                ? MiaoTheme.indigoDye
+                : Colors.green[700]!;
+            final icon = index == 0 ? Icons.menu_book_rounded : Icons.agriculture;
+
+            return GameEntryCard(
+              game: game,
+              color: color,
+              icon: icon,
+              onTap: () => _openGame(game),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _openGame(GameDefinition game) async {
+    String? suggestedQuestion;
+
+    if (game.id == 'book_filing') {
+      suggestedQuestion = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const GameBookFilingScreen()),
+      );
+    } else if (game.id == 'farm_management') {
+      suggestedQuestion = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => const GameFarmManagementScreen()),
+      );
+    }
+
+    if (!mounted) return;
+    if (suggestedQuestion != null && suggestedQuestion.isNotEmpty) {
+      setState(() {
+        _textController.text = suggestedQuestion!;
+      });
+    }
+  }
+
+  /// 澶勭悊鐭ヨ瘑鐩茬洅鐐瑰嚮
+  Future<void> _handleBlindBoxTap(String category) async {
+    if (_isProcessing) return;
+
+    setState(() {
+      _isProcessing = true;
+      _avatarState = AvatarState.thinking;
+    });
+
+    try {
+      // 浠庣煡璇嗗簱闅忔満鎶藉彇璇ュ垎绫荤殑鐭ヨ瘑
+      final knowledge = await _ragService.getRandomKnowledgeByCategory(category);
+      
+      if (knowledge == null) {
+        // 闄嶇骇锛氭樉绀哄弸濂芥彁绀?
+        setState(() {
+          _messages.add(Message.assistant(
+            '鍝庡憖锛岃繖涓垎绫荤殑鐭ヨ瘑鐩茬洅鏆傛椂杩樺湪鍑嗗涓憿锛侌煄乗n\n浣犲彲浠ヨ瘯璇曞叾浠栧垎绫伙紝鎴栬€呯洿鎺ラ棶鎴戦棶棰樺摝~',
+          ));
+          _avatarState = AvatarState.talking;
+        });
+        
+        await Future.delayed(const Duration(seconds: 2));
+        setState(() {
+          _avatarState = AvatarState.idle;
+          _isProcessing = false;
+        });
+        return;
+      }
+
+      // 鍏堟樉绀洪棶棰橈紙妯℃嫙鐢ㄦ埛鎻愰棶锛?
+      setState(() {
+        _messages.add(Message.user('馃巵 ${knowledge.question}'));
+      });
+      _scrollToBottom();
+
+      // 寤惰繜0.5绉掑悗鏄剧ず绛旀
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      setState(() {
+        _avatarState = AvatarState.talking;
+        _messages.add(Message.assistant(
+          knowledge.answer,
+          category: _mapCategoryToMessageCategory(category),
+        ));
+      });
+
+      // 璇煶鎾姤
+      if (_isTTSEnabled && knowledge.answer.isNotEmpty) {
+        _speechService.speak(knowledge.answer);
+      }
+
+      _scrollToBottom();
+
+      if (!mounted) return;
+
+      // 鏄剧ず鎻愮ず
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('馃巵 鐭ヨ瘑鐩茬洅锛?category鍒嗙被'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      await Future.delayed(const Duration(seconds: 2));
+      setState(() {
+        _avatarState = AvatarState.idle;
+        _isProcessing = false;
+      });
+    } catch (e) {
+      Logger.error('鐭ヨ瘑鐩茬洅閿欒', error: e);
+      setState(() {
+        _messages.add(Message.assistant(
+          '鎶辨瓑锛岀煡璇嗙洸鐩掑嚭浜嗙偣灏忛棶棰樸€備綘鍙互鐩存帴闂垜闂鍝︼紒',
+        ));
+        _avatarState = AvatarState.idle;
+        _isProcessing = false;
+      });
+    }
+  }
+
+  /// 鏄犲皠鍒嗙被鍒版秷鎭被鍒?
+  MessageCategory? _mapCategoryToMessageCategory(String category) {
+    switch (category) {
+      case '闈為仐':
+        return MessageCategory.culture;
+      case '鍐滀笟':
+        return MessageCategory.agriculture;
+      case '瀛︿範':
+        return MessageCategory.education;
+      case '鏁呬簨':
+        return MessageCategory.story;
+      default:
+        return null;
+    }
+  }
+
+  /// 浠庢煡璇㈡枃鏈娴嬪垎绫?
+  MessageCategory? _detectCategoryFromQuery(String query) {
+    final lowerQuery = query.toLowerCase();
+    
+    // 闈為仐鏂囧寲鍏抽敭璇?
+    if (lowerQuery.contains('铚℃煋') || lowerQuery.contains('闈為仐') || 
+        lowerQuery.contains('鍒虹唬') || lowerQuery.contains('閾堕グ') ||
+        lowerQuery.contains('鑺︾瑱') || lowerQuery.contains('澶ф瓕')) {
+      return MessageCategory.culture;
+    }
+    
+    // 鍐滀笟鐭ヨ瘑鍏抽敭璇?
+    if (lowerQuery.contains('钃濊帗') || lowerQuery.contains('鍐滀笟') || 
+        lowerQuery.contains('绉嶆') || lowerQuery.contains('楹诲皬鑾?) ||
+        lowerQuery.contains('鍦熷￥') || lowerQuery.contains('鐥呰櫕瀹?)) {
+      return MessageCategory.agriculture;
+    }
+    
+    // 鏁欒偛杈呭鍏抽敭璇?
+    if (lowerQuery.contains('瀛︿範') || lowerQuery.contains('浣滀笟') || 
+        lowerQuery.contains('鑰冭瘯') || lowerQuery.contains('杈呭') ||
+        lowerQuery.contains('璇讳功') || lowerQuery.contains('鎴愮哗')) {
+      return MessageCategory.education;
+    }
+    
+    // 鏁呬簨鏂囧寲鍏抽敭璇?
+    if (lowerQuery.contains('鏁呬簨') || lowerQuery.contains('鑺傛棩') || 
+        lowerQuery.contains('鑻楁棌') || lowerQuery.contains('浼犺') ||
+        lowerQuery.contains('鍘嗗彶') || lowerQuery.contains('鏅偣')) {
+      return MessageCategory.story;
+    }
+    
+    return null;
+  }
+
+  Future<void> _handleSend() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty || _isProcessing) return;
+
+    _textController.clear();
+
+    final userMessage = Message.user(text);
+    setState(() {
+      _messages.add(userMessage);
+      _isProcessing = true;
+      _avatarState = AvatarState.thinking;
+    });
+
+    _scrollToBottom();
+
+    String? answer;
+    MessageCategory? category;
+
+    // 1. 鍏堝皾璇?RAG 妫€绱?
+    final resp = await _ragService.search(text);
+    if (resp != null) {
+      answer = resp.content;
+      category = _detectCategoryFromQuery(text);
+    }
+
+    // 2. 濡傛灉鏈湴娌℃湁绛旀锛岃皟鐢ㄧ櫨搴gent
+    if (answer == null && _baiduService.isConfigured()) {
+      setState(() {
+        _avatarState = AvatarState.thinking;
+      });
+      answer = await _baiduService.chat(text);
+      
+      if (answer != null) {
+        category = _detectCategoryFromQuery(text);
+      }
+    }
+
+  // 3. 濡傛灉閮芥病鏈夛紝杩斿洖鍙嬪ソ鎻愮ず
+  answer ??= '杩欐槸涓緢濂界殑闂锛侌煋歕n\n涓嶈繃鎴戞殏鏃惰繕涓嶅お浜嗚В銆備綘鍙互闂垜鍏充簬锛歕n\n'
+    '馃帹 楹绘睙鏂囧寲鍜岄潪閬楁妧鑹篭n'
+    '馃尵 钃濊帗绉嶆鍜屽啘涓氱煡璇哱n'
+    '馃摉 瀛︿範鏂规硶鍜屽績鐞嗚緟瀵糪n'
+    '馃幁 鑻楁棌鏁呬簨鍜屼紶缁熻妭鏃n\n'
+    '鎴戜細缁х画瀛︿範锛屽彉寰楁洿鑱槑鐨勶紒';
+
+    setState(() {
+      _avatarState = AvatarState.talking;
+      _messages.add(Message.assistant(
+        answer!,
+        category: category,
+      ));
+    });
+
+    // 璇煶鎾姤
+    if (_isTTSEnabled && answer.isNotEmpty) {
+      _speechService.speak(answer);
+    }
+
+    _scrollToBottom();
+
+    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _avatarState = AvatarState.idle;
+      _isProcessing = false;
+    });
+  }
+
+  /// 鏄剧ず绠€鍗曠殑琛ㄦ儏閫夋嫨鍣紙搴曢儴寮瑰嚭锛岀偣鍑诲皢琛ㄦ儏鎻掑叆杈撳叆妗嗭級
+  void _showEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        final emojis = ['馃榾','馃槉','馃槏','馃槶','馃憤','馃憦','馃帀','馃','馃敟','馃尭'];
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 6,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+          ),
+          itemCount: emojis.length,
+          itemBuilder: (context, index) {
+            final e = emojis[index];
+            return GestureDetector(
+              onTap: () {
+                final text = _textController.text;
+                final selection = _textController.selection;
+                final newText = selection.isValid
+                    ? text.replaceRange(selection.start, selection.end, e)
+                    : text + e;
+                _textController.text = newText;
+                _textController.selection = TextSelection.collapsed(offset: newText.length);
+                Navigator.of(context).pop();
+              },
+              child: Center(child: Text(e, style: const TextStyle(fontSize: 24))),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('鍏充簬澶忓悓榫㈡暟瀛椾汉'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('鐗堟湰锛?.0.0\n'),
+              Text('澶忓悓榫㈡暟瀛椾汉鏄竴娆句笓涓哄皯鏁版皯鏃忓湴鍖烘暀鑲插潎琛¤€岃璁＄殑AI鍔╂墜銆?),
+              SizedBox(height: 16),
+              Text('鍔熻兘鐗圭偣锛?, style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('鈥?鏈湴鐭ヨ瘑搴擄紙璐靛窞楹绘睙鏂囧寲锛?),
+              Text('鈥?AI鏅鸿兘闂瓟'),
+              Text('鈥?鑻楁棌鐗硅壊UI璁捐'),
+              SizedBox(height: 16),
+              Text('寮€鍙戝洟闃燂細鍗椾含鍐滀笟澶у瀛︾敓鍥㈤槦'),
+              Text('璇曠偣鍦板尯锛氳吹宸炵渷楹绘睙鍘?),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('鍏抽棴'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 鏄剧ず鐭ヨ瘑鍒嗙被
+  void _showKnowledgeCategories() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
+          ),
+        ),
+        child: Column(
+          children: [
+            // 椤堕儴瑁呴グ鏉?
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 50,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            
+            // 鏍囬
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: MiaoTheme.indigoDye.withAlpha((0.1 * 255).round()),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.category,
+                      color: MiaoTheme.indigoDye,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    '鐭ヨ瘑鍒嗙被',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: MiaoTheme.indigoDye,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            // 鍒嗙被缃戞牸
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                padding: const EdgeInsets.all(16),
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 1.2,
+                children: [
+                  _buildCategoryCard(
+                    icon: Icons.palette,
+                    title: '闈為仐鏂囧寲',
+                    color: MiaoTheme.indigoDye,
+                    gradient: [MiaoTheme.indigoDye, MiaoTheme.indigoDye.withAlpha((0.7 * 255).round())],
+                    onTap: () => _askQuestion('浠嬬粛涓€涓嬫灚棣欒湣鏌?),
+                  ),
+                  _buildCategoryCard(
+                    icon: Icons.account_balance,
+                    title: '鍘嗗彶浜虹墿',
+                    color: MiaoTheme.scholarGold,
+                    gradient: [MiaoTheme.scholarGold, MiaoTheme.scholarGold.withAlpha((0.7 * 255).round())],
+                    onTap: () => _askQuestion('澶忓悓榫㈡槸璋?),
+                  ),
+                  _buildCategoryCard(
+                    icon: Icons.landscape,
+                    title: '鍦扮悊鏂囧寲',
+                    color: Colors.green[700]!,
+                    gradient: [Colors.green[700]!, Colors.green[500]!],
+                    onTap: () => _askQuestion('楹绘睙鍦ㄥ摢閲?),
+                  ),
+                  _buildCategoryCard(
+                    icon: Icons.agriculture,
+                    title: '鍐滀笟鐭ヨ瘑',
+                    color: Colors.brown[600]!,
+                    gradient: [Colors.brown[600]!, Colors.brown[400]!],
+                    onTap: () => _askQuestion('钃濊帗浠€涔堟椂鍊欐垚鐔?),
+                  ),
+                  _buildCategoryCard(
+                    icon: Icons.school,
+                    title: '鏁欒偛杈呭',
+                    color: Colors.blue[700]!,
+                    gradient: [Colors.blue[700]!, Colors.blue[500]!],
+                    onTap: () => _askQuestion('鎬庢牱瀛︿範濂?),
+                  ),
+                  _buildCategoryCard(
+                    icon: Icons.auto_stories,
+                    title: '鑻楁棌鏁呬簨',
+                    color: MiaoTheme.mapleRed,
+                    gradient: [MiaoTheme.mapleRed, MiaoTheme.mapleRed.withAlpha((0.7 * 255).round())],
+                    onTap: () => _askQuestion('鑻楀勾鑺傛槸浠€涔堟椂鍊?),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 鍒嗙被鍗＄墖
+  Widget _buildCategoryCard({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required List<Color> gradient,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+          borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+            BoxShadow(
+              color: color.withAlpha((0.3 * 255).round()),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha((0.2 * 255).round()),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 36,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 鑷姩鎻愰棶
+  void _askQuestion(String question) {
+    _textController.text = question;
+    _handleSend();
+  }
+}
+
