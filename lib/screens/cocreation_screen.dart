@@ -120,9 +120,9 @@ class _CocreationScreenState extends State<CocreationScreen>
       ),
       title: const Row(
         children: [
-          Icon(Icons.rocket_launch, size: 24),
+          Icon(Icons.emoji_events, size: 24),
           SizedBox(width: 8),
-          Text('大学生共创实验室'),
+          Text('游戏打榜'),
         ],
       ),
       actions: [

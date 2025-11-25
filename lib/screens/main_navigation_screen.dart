@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
-import 'home_screen.dart';
+import 'creative_workshop_screen.dart';
 import 'heritage_library_screen.dart';
-import 'creative_market_screen.dart';
 import 'cocreation_screen.dart';
 import 'profile_screen.dart';
 
-/// 主导航屏幕 - 包含5个Tab页面
-/// 1. 首页 (聊天+AI顾问)
-/// 2. 非遗库 (技艺/故事/人物档案)
-/// 3. 文创集 (产品展示/设计灵感)
-/// 4. 共创 (任务系统/能力成长)
-/// 5. 我的 (个人中心/数据面板)
+/// 主导航屏幕 - 包含4个Tab页面
+/// 1. 创意工坊 (AI设计+创意产品展示)
+/// 2. 非遗库 (美食/文化/节日/传承人)
+/// 3. 游戏打榜 (评分榜+附魔系统)
+/// 4. 我的 (个人资料)
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -24,9 +22,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = const [
-    HomeScreen(),
+    CreativeWorkshopScreen(),
     HeritageLibraryScreen(),
-    CreativeMarketScreen(),
     CocreationScreen(),
     ProfileScreen(),
   ];
@@ -62,9 +59,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             children: [
               _buildNavItem(
                 index: 0,
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: '首页',
+                icon: Icons.auto_awesome_outlined,
+                activeIcon: Icons.auto_awesome,
+                label: '创意工坊',
               ),
               _buildNavItem(
                 index: 1,
@@ -74,18 +71,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
               _buildNavItem(
                 index: 2,
-                icon: Icons.storefront_outlined,
-                activeIcon: Icons.storefront,
-                label: '文创集',
+                icon: Icons.emoji_events_outlined,
+                activeIcon: Icons.emoji_events,
+                label: '游戏打榜',
               ),
               _buildNavItem(
                 index: 3,
-                icon: Icons.rocket_launch_outlined,
-                activeIcon: Icons.rocket_launch,
-                label: '共创',
-              ),
-              _buildNavItem(
-                index: 4,
                 icon: Icons.person_outline,
                 activeIcon: Icons.person,
                 label: '我的',
